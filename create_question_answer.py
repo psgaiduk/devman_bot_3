@@ -11,14 +11,13 @@ def get_questions_and_answers():
     with open(file_path, encoding='KOI8-R') as file_with_questions:
         questions = file_with_questions.read()
 
-    dict_question_answer = {}
-    list_questions = questions.split('Вопрос')
-    for question_answer in list_questions[1:]:
-        if 'Ответ:' not in question_answer:
-            continue
-        list_question_answer = question_answer.split('Ответ:')
-        question = list_question_answer[0].split(':')[1].strip()
-        answer = list_question_answer[1].strip().split('\n\n')[0]
-        dict_question_answer[question] = answer
+    question_and_answer = ''
+    while 'Ответ:' not in question_and_answer:
+        list_questions = questions.split('Вопрос')[1:]
+        question_and_answer = random.choice(list_questions)
 
-    return dict_question_answer
+    question_and_answer = question_and_answer.split('Ответ:')
+    question = question_and_answer[0].split(':')[1].strip()
+    answer = question_and_answer[1].split('\n\n')[0].strip()
+
+    return question, answer
