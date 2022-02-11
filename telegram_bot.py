@@ -2,10 +2,10 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ReplyKeyboardMarkup
 import os
 from dotenv import load_dotenv
+from create_question_answer import get_questions_and_answers
 
 
 def start(bot, update):
-    """Send a message when the command /start is issued."""
     custom_keyboard = [['New question', 'Surrender'], ['My Score']]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
     bot.send_message(chat_id=update.message.chat.id, text="Custom Keyboard Test", reply_markup=reply_markup)
@@ -16,9 +16,12 @@ def help(bot, update):
     update.message.reply_text('Help!')
 
 
-def echo(bot, update):
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
+def quiz(bot, update):
+    if update.message.text == 'New question':
+        question, answer = get_questions_and_answers()
+        bot.send_message(chat_id=update.message.chat.id, text=question)
+    else:
+        update.message.reply_text(update.message.text)
 
 
 # def error(bot, update, error):
@@ -41,7 +44,7 @@ def main():
     dp.add_handler(CommandHandler("help", help))
 
     # on noncommand i.e message - echo the message on Telegram
-    dp.add_handler(MessageHandler(Filters.text, echo))
+    dp.add_handler(MessageHandler(Filters.text, quiz))
 
     # log all errors
     # dp.add_error_handler(error)
