@@ -1,11 +1,14 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import ReplyKeyboardMarkup
 import os
 from dotenv import load_dotenv
 
 
 def start(bot, update):
     """Send a message when the command /start is issued."""
-    update.message.reply_text('Hi!')
+    custom_keyboard = [['New question', 'Surrender'], ['My Score']]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard)
+    bot.send_message(chat_id=update.message.chat.id, text="Custom Keyboard Test", reply_markup=reply_markup)
 
 
 def help(bot, update):
