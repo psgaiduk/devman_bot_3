@@ -3,6 +3,7 @@ from telegram import ReplyKeyboardMarkup
 import os
 from dotenv import load_dotenv
 from create_question_answer import get_questions_and_answers
+import redis
 
 
 def start(bot, update):
@@ -17,11 +18,21 @@ def help(bot, update):
 
 
 def quiz(bot, update):
+    redis_password = os.environ['REDIS_PASSWORD']
+    r = redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
+                    password=redis_password, decode_responses=True)
+
     if update.message.text == 'New question':
         question, answer = get_questions_and_answers()
+        r.set(update.message.chat.id, answer)
         bot.send_message(chat_id=update.message.chat.id, text=question)
     else:
-        update.message.reply_text(update.message.text)
+        text = 'Неправильно… Попробуешь ещё раз?'
+        answer = r.get(update.message.chat.id)
+        if update.message.text == answer:
+            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+
+        update.message.reply_text(text)
 
 
 # def error(bot, update, error):
