@@ -18,7 +18,7 @@ def get_data_from_redis():
     return RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
 
-def new_question(r, vk_api, event, keyboard):
+def send_new_question(r, vk_api, event, keyboard):
     logger.debug(f'Пользователь нажал кнопку новый вопрос')
     id_question, question = r.get_random_question()
     logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
@@ -37,12 +37,12 @@ def send_message(vk_api, event, keyboard, text):
     logger.debug(f'Отправил сообщение в ВК {result}')
 
 
-def quiz_work(event, vk_api, keyboard):
+def work_quiz(event, vk_api, keyboard):
     r = get_data_from_redis()
     user = r.get_user(f'vk_{event.user_id}')
 
     if event.message == 'Новый вопрос':
-        new_question(r, vk_api, event, keyboard)
+        send_new_question(r, vk_api, event, keyboard)
 
     elif event.message == 'Сдаться':
         if user:
@@ -52,7 +52,7 @@ def quiz_work(event, vk_api, keyboard):
             logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
             text = f'Правильный ответ:\n{answer}'
             send_message(vk_api, event, keyboard, text)
-        new_question(r, vk_api, event, keyboard)
+        send_new_question(r, vk_api, event, keyboard)
 
     else:
         logger.debug(f'Пользователь пишет ответ')
@@ -67,7 +67,7 @@ def quiz_work(event, vk_api, keyboard):
 
             send_message(vk_api, event, keyboard, text)
         else:
-            new_question(r, vk_api, event, keyboard)
+            send_new_question(r, vk_api, event, keyboard)
 
 
 def main():
@@ -99,7 +99,7 @@ def main():
     for event in long_poll.listen():
         try:
             if event.type == longpoll.VkEventType.MESSAGE_NEW and event.to_me:
-                quiz_work(event, vk_api, keyboard)
+                work_quiz(event, vk_api, keyboard)
         except exceptions.Captcha as e:
             time.sleep(1)
             logger.error(e, exc_info=True)
