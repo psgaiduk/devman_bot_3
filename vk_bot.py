@@ -100,11 +100,12 @@ def main():
         try:
             if event.type == longpoll.VkEventType.MESSAGE_NEW and event.to_me:
                 quiz_work(event, vk_api, keyboard)
-        except exceptions.Captcha:
+        except exceptions.Captcha as e:
             time.sleep(1)
+            logger.error(e, exc_info=True)
         except Exception as e:
-            print(e)
             time.sleep(1)
+            logger.error(e, exc_info=True)
 
 
 if __name__ == "__main__":
