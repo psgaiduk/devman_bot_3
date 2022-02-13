@@ -12,5 +12,5 @@ class BotHandler(logging.Handler):
     def emit(self, record):
         message = self.format(record)
         self.bot_logger.send_message(
-            text=f'{message}',
+            text=message,
             chat_id=self.logger_chat_id)
