@@ -37,37 +37,43 @@ def send_message(vk_api, event, keyboard, text):
     logger.debug(f'Отправил сообщение в ВК {result}')
 
 
+def will_surrender(r, user, vk_api, event, keyboard):
+    if user:
+        question_id = user['user_last_question_id']
+        logger.debug(f'Пользователь нажал кнопку "Сдаться"')
+        answer = r.get_answer(question_id)
+        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
+        text = f'Правильный ответ:\n{answer}'
+        send_message(vk_api, event, keyboard, text)
+    send_new_question(r, vk_api, event, keyboard)
+
+
+def try_guess(r, user, vk_api, event, keyboard):
+    logger.debug(f'Пользователь пишет ответ')
+    if user:
+        question_id = user['user_last_question_id']
+        answer = r.get_answer(question_id)
+        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
+        text = 'Неправильно… Попробуешь ещё раз?'
+        if answer == event.message:
+            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+            logger.debug(f'Это правильный ответ {event.message}')
+
+        send_message(vk_api, event, keyboard, text)
+    else:
+        send_new_question(r, vk_api, event, keyboard)
+
+
 def work_quiz(event, vk_api, keyboard):
     r = get_data_from_redis()
     user = r.get_user(f'vk_{event.user_id}')
 
     if event.message == 'Новый вопрос':
         send_new_question(r, vk_api, event, keyboard)
-
     elif event.message == 'Сдаться':
-        if user:
-            question_id = user['user_last_question_id']
-            logger.debug(f'Пользователь нажал кнопку "Сдаться"')
-            answer = r.get_answer(question_id)
-            logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
-            text = f'Правильный ответ:\n{answer}'
-            send_message(vk_api, event, keyboard, text)
-        send_new_question(r, vk_api, event, keyboard)
-
+        will_surrender(r, user, vk_api, event, keyboard)
     else:
-        logger.debug(f'Пользователь пишет ответ')
-        if user:
-            question_id = user['user_last_question_id']
-            answer = r.get_answer(question_id)
-            logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
-            text = 'Неправильно… Попробуешь ещё раз?'
-            if answer == event.message:
-                text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-                logger.debug(f'Это правильный ответ {event.message}')
-
-            send_message(vk_api, event, keyboard, text)
-        else:
-            send_new_question(r, vk_api, event, keyboard)
+        try_guess(r, user, vk_api, event, keyboard)
 
 
 def main():
