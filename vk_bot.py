@@ -6,21 +6,29 @@ from dotenv import load_dotenv
 import random
 import redis
 from create_question_answer import get_questions_and_answers
+from logging import getLogger, basicConfig, INFO
+from logger_handler import BotHandler
+
+logger = getLogger('app_logger')
 
 
 def new_question(r, vk_api, event, keyboard):
+    logger.debug(f'Пользователь нажал кнопку новый вопрос')
     question, answer = get_questions_and_answers()
-    r.set(event.user_id, answer)
+    logger.debug(f'Получили вопрос и ответ\n{question}\n{answer}')
+    insert_to_bd = r.set(event.user_id, answer)
+    logger.debug(f'Записали данные в БД {insert_to_bd}')
     send_message(vk_api, event, keyboard, f'Вопрос:\n{question}')
 
 
 def send_message(vk_api, event, keyboard, text):
-    vk_api.messages.send(
+    result = vk_api.messages.send(
         user_id=event.user_id,
         message=text,
         keyboard=keyboard.get_keyboard(),
         random_id=random.randint(1, 1000)
     )
+    logger.debug(f'Отправил сообщение в ВК {result}')
 
 
 def quiz_work(event, vk_api, keyboard):
@@ -32,16 +40,21 @@ def quiz_work(event, vk_api, keyboard):
         new_question(r, vk_api, event, keyboard)
 
     elif event.message == 'Сдаться':
+        logger.debug(f'Пользователь нажал кнопку "Сдаться"')
         answer = r.get(event.user_id)
+        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
         text = f'Правильный ответ:\n{answer}'
         send_message(vk_api, event, keyboard, text)
         new_question(r, vk_api, event, keyboard)
 
     else:
+        logger.debug(f'Пользователь пишет ответ')
         answer = r.get(event.user_id)
+        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
         text = 'Неправильно… Попробуешь ещё раз?'
         if answer == event.message:
             text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+            logger.debug(f'Это правильный ответ {event.message}')
 
         send_message(vk_api, event, keyboard, text)
 
@@ -52,6 +65,13 @@ def main():
         load_dotenv(dotenv_path)
 
     token_vk = os.environ['VK_TOKEN']
+    logger_token = os.environ['TOKEN_TELEGRAM_LOGGER']
+    logger_chat_id = os.environ['CHAT_ID']
+
+    basicConfig(level=INFO, format='{asctime} - {levelname} - {name} - {message}', style='{')
+    logger.addHandler(BotHandler(logger_token, logger_chat_id))
+
+    logger.info('Начало работы ВК бота Викторина')
 
     vk_session = VkApi(token=token_vk)
     vk_api = vk_session.get_api()

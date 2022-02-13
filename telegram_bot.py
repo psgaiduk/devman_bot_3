@@ -4,14 +4,18 @@ import os
 from dotenv import load_dotenv
 from create_question_answer import get_questions_and_answers
 import redis
+from logging import getLogger, basicConfig, INFO
+from logger_handler import BotHandler
 
+logger = getLogger('app_logger')
 QUIZ = range(1)
 
 
 def start(bot, update):
-    custom_keyboard = [['New question', 'Surrender'], ['My Score']]
+    logger.debug('Пользователь начал работу с ботом')
+    custom_keyboard = [['Новый вопрос', 'Сдаться'], ['Мой счёт']]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
-    bot.send_message(chat_id=update.message.chat.id, text="Custom Keyboard Test", reply_markup=reply_markup)
+    bot.send_message(chat_id=update.message.chat.id, text="Игра началась", reply_markup=reply_markup)
 
     return QUIZ
 
@@ -23,27 +27,38 @@ def get_data_from_redis():
 
 
 def handle_new_question_request(bot, update):
+    logger.debug('Пользователь нажал кнопку новый вопрос')
     r = get_data_from_redis()
     question, answer = get_questions_and_answers()
+    logger.debug(f'Получили вопрос и ответ\n{question}\n{answer}')
     r.set(update.message.chat.id, answer)
-    bot.send_message(chat_id=update.message.chat.id, text=question)
+    logger.debug(f'Записали данные в БД')
+    result = bot.send_message(chat_id=update.message.chat.id, text=question)
+    logger.debug(f'Отправили сообщение в чат\n{result}')
 
 
 def handle_surrender(bot, update):
+    logger.debug('Пользователь нажал кнопку "Сдаться"')
     r = get_data_from_redis()
     answer = r.get(update.message.chat.id)
+    logger.debug(f'Получили сохранённый ответ из БД для этого пользователя:\n{answer}')
     text = f'Правильный ответ:\n{answer}'
-    update.message.reply_text(text)
+    result = update.message.reply_text(text)
+    logger.debug(f'Отправили сообщение в чат\n{result}')
     handle_new_question_request(bot, update)
 
 
 def handle_solution_attempt(_, update):
+    logger.debug(f'Пользователь пишет ответ {update.message.text}')
     r = get_data_from_redis()
     text = 'Неправильно… Попробуешь ещё раз?'
     answer = r.get(update.message.chat.id)
     if update.message.text == answer:
         text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+        logger.debug(f'Это правильный ответ {answer}')
 
+    result = update.message.reply_text(text)
+    logger.debug(f'Отправили сообщение в чат\n{result}')
     update.message.reply_text(text)
 
 
@@ -60,6 +75,13 @@ def main():
         load_dotenv(dotenv_path)
 
     token_telegram = os.environ['TELEGRAM_TOKEN']
+    logger_token = os.environ['TOKEN_TELEGRAM_LOGGER']
+    logger_chat_id = os.environ['CHAT_ID']
+
+    basicConfig(level=INFO, format='{asctime} - {levelname} - {name} - {message}', style='{')
+    logger.addHandler(BotHandler(logger_token, logger_chat_id))
+
+    logger.info('Начало работы телеграмм бота Викторина')
 
     updater = Updater(token_telegram)
     dp = updater.dispatcher
@@ -68,8 +90,8 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             QUIZ: [
-                RegexHandler('^(New question)$', handle_new_question_request),
-                RegexHandler('^(Surrender)$', handle_surrender),
+                RegexHandler('^(Новый вопрос)$', handle_new_question_request),
+                RegexHandler('^(Сдаться)$', handle_surrender),
                 MessageHandler(Filters.text, handle_solution_attempt)
             ],
         },
