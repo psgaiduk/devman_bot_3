@@ -22,29 +22,6 @@ def get_data_from_redis():
                        password=redis_password, decode_responses=True)
 
 
-def help(bot, update):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
-
-
-def quiz(bot, update):
-    redis_password = os.environ['REDIS_PASSWORD']
-    r = redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
-                    password=redis_password, decode_responses=True)
-
-    if update.message.text == 'New question':
-        question, answer = get_questions_and_answers()
-        r.set(update.message.chat.id, answer)
-        bot.send_message(chat_id=update.message.chat.id, text=question)
-    else:
-        text = 'Неправильно… Попробуешь ещё раз?'
-        answer = r.get(update.message.chat.id)
-        if update.message.text == answer:
-            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-
-        update.message.reply_text(text)
-
-
 def handle_new_question_request(bot, update):
     r = get_data_from_redis()
     question, answer = get_questions_and_answers()
@@ -60,7 +37,7 @@ def handle_surrender(bot, update):
     handle_new_question_request(bot, update)
 
 
-def handle_solution_attempt(bot, update):
+def handle_solution_attempt(_, update):
     r = get_data_from_redis()
     text = 'Неправильно… Попробуешь ещё раз?'
     answer = r.get(update.message.chat.id)
@@ -70,15 +47,8 @@ def handle_solution_attempt(bot, update):
     update.message.reply_text(text)
 
 
-# def error(bot, update, error):
-#     """Log Errors caused by Updates."""
-#     logger.warning('Update "%s" caused error "%s"', update, error)
-
-
-def cancel(bot, update):
-    user = update.message.from_user
-    update.message.reply_text('Bye! I hope we can talk again some day.',
-                              reply_markup=ReplyKeyboardRemove())
+def cancel(_, update):
+    update.message.reply_text('Stop working', reply_markup=ReplyKeyboardRemove())
 
     return ConversationHandler.END
 
