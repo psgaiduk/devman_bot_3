@@ -4,18 +4,46 @@ import os
 import time
 from dotenv import load_dotenv
 import random
+import redis
+from create_question_answer import get_questions_and_answers
 
 
-def send_auto_answer_to_vk(event, vk_api, keyboard):
+def new_question(r, vk_api, event, keyboard):
+    question, answer = get_questions_and_answers()
+    r.set(event.user_id, answer)
+    send_message(vk_api, event, keyboard, f'Вопрос:\n{question}')
 
-    text = event.message
 
+def send_message(vk_api, event, keyboard, text):
     vk_api.messages.send(
         user_id=event.user_id,
         message=text,
         keyboard=keyboard.get_keyboard(),
         random_id=random.randint(1, 1000)
     )
+
+
+def quiz_work(event, vk_api, keyboard):
+    redis_password = os.environ['REDIS_PASSWORD']
+    r = redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
+                    password=redis_password, decode_responses=True)
+
+    if event.message == 'Новый вопрос':
+        new_question(r, vk_api, event, keyboard)
+
+    elif event.message == 'Сдаться':
+        answer = r.get(event.user_id)
+        text = f'Правильный ответ:\n{answer}'
+        send_message(vk_api, event, keyboard, text)
+        new_question(r, vk_api, event, keyboard)
+
+    else:
+        answer = r.get(event.user_id)
+        text = 'Неправильно… Попробуешь ещё раз?'
+        if answer == event.message:
+            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+
+        send_message(vk_api, event, keyboard, text)
 
 
 def main():
@@ -39,12 +67,12 @@ def main():
 
     for event in long_poll.listen():
         try:
-            print(event.type)
             if event.type == longpoll.VkEventType.MESSAGE_NEW and event.to_me:
-                send_auto_answer_to_vk(event, vk_api, keyboard)
+                quiz_work(event, vk_api, keyboard)
         except exceptions.Captcha:
             time.sleep(1)
         except Exception as e:
+            print(e)
             time.sleep(1)
 
 
