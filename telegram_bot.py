@@ -21,9 +21,10 @@ def start(bot, update):
 
 
 def get_data_from_redis():
+    redis_port = int(os.environ['REDIS_PORT'])
+    redis_host = os.environ['REDIS_HOST']
     redis_password = os.environ['REDIS_PASSWORD']
-    return redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
-                       password=redis_password, decode_responses=True)
+    return redis.Redis(host=redis_host, port=redis_port, db=0, password=redis_password, decode_responses=True)
 
 
 def handle_new_question_request(bot, update):

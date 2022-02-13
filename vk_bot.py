@@ -32,9 +32,10 @@ def send_message(vk_api, event, keyboard, text):
 
 
 def quiz_work(event, vk_api, keyboard):
+    redis_host = os.environ['REDIS_HOST']
+    redis_port = int(os.environ['REDIS_PORT'])
     redis_password = os.environ['REDIS_PASSWORD']
-    r = redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
-                    password=redis_password, decode_responses=True)
+    r = redis.Redis(host=redis_host, port=redis_port, db=0, password=redis_password, decode_responses=True)
 
     if event.message == 'Новый вопрос':
         new_question(r, vk_api, event, keyboard)
