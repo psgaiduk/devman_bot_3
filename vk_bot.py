@@ -11,7 +11,7 @@ from redis_work import RedisDB
 logger = getLogger('app_logger')
 
 
-def get_data_from_redis():
+def connect_redis():
     redis_port = int(os.environ['REDIS_PORT'])
     redis_host = os.environ['REDIS_HOST']
     redis_password = os.environ['REDIS_PASSWORD']
