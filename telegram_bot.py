@@ -2,10 +2,9 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Conve
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 import os
 from dotenv import load_dotenv
-from create_question_answer import get_questions_and_answers
-import redis
 from logging import getLogger, basicConfig, INFO
 from logger_handler import BotHandler
+from redis_work import RedisDB
 
 logger = getLogger('app_logger')
 QUIZ = range(1)
@@ -24,15 +23,15 @@ def get_data_from_redis():
     redis_port = int(os.environ['REDIS_PORT'])
     redis_host = os.environ['REDIS_HOST']
     redis_password = os.environ['REDIS_PASSWORD']
-    return redis.Redis(host=redis_host, port=redis_port, db=0, password=redis_password, decode_responses=True)
+    return RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
 
 def handle_new_question_request(bot, update):
     logger.debug('Пользователь нажал кнопку новый вопрос')
     r = get_data_from_redis()
-    question, answer = get_questions_and_answers()
-    logger.debug(f'Получили вопрос и ответ\n{question}\n{answer}')
-    r.set(update.message.chat.id, answer)
+    id_question, question = r.get_random_question()
+    logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
+    r.update_user(f'tg_{update.message.chat.id}', id_question)
     logger.debug(f'Записали данные в БД')
     result = bot.send_message(chat_id=update.message.chat.id, text=question)
     logger.debug(f'Отправили сообщение в чат\n{result}')
@@ -41,26 +40,39 @@ def handle_new_question_request(bot, update):
 def handle_surrender(bot, update):
     logger.debug('Пользователь нажал кнопку "Сдаться"')
     r = get_data_from_redis()
-    answer = r.get(update.message.chat.id)
-    logger.debug(f'Получили сохранённый ответ из БД для этого пользователя:\n{answer}')
-    text = f'Правильный ответ:\n{answer}'
-    result = update.message.reply_text(text)
-    logger.debug(f'Отправили сообщение в чат\n{result}')
-    handle_new_question_request(bot, update)
+    user = r.get_user(f'tg_{update.message.chat.id}')
+    if user:
+        question_id = user['user_last_question_id']
+        answer = r.get_answer(question_id)
+        logger.debug(f'Получили сохранённый ответ из БД для этого пользователя:\n{answer}')
+        text = f'Правильный ответ:\n{answer}'
+        result = update.message.reply_text(text)
+        logger.debug(f'Отправили сообщение в чат\n{result}')
+        handle_new_question_request(bot, update)
+    else:
+        logger.warning(f'Не нашли такого пользователя в БД\n{update.message.chat.id}')
+        handle_new_question_request(bot, update)
 
 
-def handle_solution_attempt(_, update):
+def handle_solution_attempt(bot, update):
     logger.debug(f'Пользователь пишет ответ {update.message.text}')
     r = get_data_from_redis()
     text = 'Неправильно… Попробуешь ещё раз?'
-    answer = r.get(update.message.chat.id)
-    if update.message.text == answer:
-        text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-        logger.debug(f'Это правильный ответ {answer}')
+    user = r.get_user(f'tg_{update.message.chat.id}')
+    if user:
+        question_id = user['user_last_question_id']
+        answer = r.get_answer(question_id)
+        if update.message.text == answer:
+            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+            logger.debug(f'Это правильный ответ {answer}')
 
-    result = update.message.reply_text(text)
-    logger.debug(f'Отправили сообщение в чат\n{result}')
-    update.message.reply_text(text)
+        result = update.message.reply_text(text)
+        logger.debug(f'Отправили сообщение в чат\n{result}')
+        update.message.reply_text(text)
+    else:
+        logger.warning(f'Не нашли такого пользователя в БД\n{update.message.chat.id}')
+        update.message.reply_text('Похоже ты ещё не начал с нами играть, вот тебе вопрос:')
+        handle_new_question_request(bot, update)
 
 
 def cancel(_, update):

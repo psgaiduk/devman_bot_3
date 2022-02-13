@@ -4,20 +4,26 @@ import os
 import time
 from dotenv import load_dotenv
 import random
-import redis
-from create_question_answer import get_questions_and_answers
 from logging import getLogger, basicConfig, INFO
 from logger_handler import BotHandler
+from redis_work import RedisDB
 
 logger = getLogger('app_logger')
 
 
+def get_data_from_redis():
+    redis_port = int(os.environ['REDIS_PORT'])
+    redis_host = os.environ['REDIS_HOST']
+    redis_password = os.environ['REDIS_PASSWORD']
+    return RedisDB(host=redis_host, port=redis_port, password=redis_password)
+
+
 def new_question(r, vk_api, event, keyboard):
     logger.debug(f'Пользователь нажал кнопку новый вопрос')
-    question, answer = get_questions_and_answers()
-    logger.debug(f'Получили вопрос и ответ\n{question}\n{answer}')
-    insert_to_bd = r.set(event.user_id, answer)
-    logger.debug(f'Записали данные в БД {insert_to_bd}')
+    id_question, question = r.get_random_question()
+    logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
+    insert_to_db = r.update_user(f'vk_{event.user_id}', id_question)
+    logger.debug(f'Записали данные в БД {insert_to_db}')
     send_message(vk_api, event, keyboard, f'Вопрос:\n{question}')
 
 
@@ -32,32 +38,36 @@ def send_message(vk_api, event, keyboard, text):
 
 
 def quiz_work(event, vk_api, keyboard):
-    redis_host = os.environ['REDIS_HOST']
-    redis_port = int(os.environ['REDIS_PORT'])
-    redis_password = os.environ['REDIS_PASSWORD']
-    r = redis.Redis(host=redis_host, port=redis_port, db=0, password=redis_password, decode_responses=True)
+    r = get_data_from_redis()
+    user = r.get_user(f'vk_{event.user_id}')
 
     if event.message == 'Новый вопрос':
         new_question(r, vk_api, event, keyboard)
 
     elif event.message == 'Сдаться':
-        logger.debug(f'Пользователь нажал кнопку "Сдаться"')
-        answer = r.get(event.user_id)
-        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
-        text = f'Правильный ответ:\n{answer}'
-        send_message(vk_api, event, keyboard, text)
+        if user:
+            question_id = user['user_last_question_id']
+            logger.debug(f'Пользователь нажал кнопку "Сдаться"')
+            answer = r.get_answer(question_id)
+            logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
+            text = f'Правильный ответ:\n{answer}'
+            send_message(vk_api, event, keyboard, text)
         new_question(r, vk_api, event, keyboard)
 
     else:
         logger.debug(f'Пользователь пишет ответ')
-        answer = r.get(event.user_id)
-        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
-        text = 'Неправильно… Попробуешь ещё раз?'
-        if answer == event.message:
-            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-            logger.debug(f'Это правильный ответ {event.message}')
+        if user:
+            question_id = user['user_last_question_id']
+            answer = r.get_answer(question_id)
+            logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
+            text = 'Неправильно… Попробуешь ещё раз?'
+            if answer == event.message:
+                text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+                logger.debug(f'Это правильный ответ {event.message}')
 
-        send_message(vk_api, event, keyboard, text)
+            send_message(vk_api, event, keyboard, text)
+        else:
+            new_question(r, vk_api, event, keyboard)
 
 
 def main():
