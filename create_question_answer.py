@@ -2,7 +2,7 @@ import os
 import random
 
 
-def get_questions_and_answers():
+def get_random_question_and_answer():
     questions_dir = os.path.join(os.path.dirname(__file__), 'questions')
     files = os.listdir(questions_dir)
     random_questions_file = random.choice(files)
