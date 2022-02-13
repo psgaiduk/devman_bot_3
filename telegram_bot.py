@@ -16,6 +16,12 @@ def start(bot, update):
     return QUIZ
 
 
+def get_data_from_redis():
+    redis_password = os.environ['REDIS_PASSWORD']
+    return redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
+                       password=redis_password, decode_responses=True)
+
+
 def help(bot, update):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
@@ -40,18 +46,22 @@ def quiz(bot, update):
 
 
 def handle_new_question_request(bot, update):
-    redis_password = os.environ['REDIS_PASSWORD']
-    r = redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
-                    password=redis_password, decode_responses=True)
+    r = get_data_from_redis()
     question, answer = get_questions_and_answers()
     r.set(update.message.chat.id, answer)
     bot.send_message(chat_id=update.message.chat.id, text=question)
 
 
+def handle_surrender(bot, update):
+    r = get_data_from_redis()
+    answer = r.get(update.message.chat.id)
+    text = f'Правильный ответ:\n{answer}'
+    update.message.reply_text(text)
+    handle_new_question_request(bot, update)
+
+
 def handle_solution_attempt(bot, update):
-    redis_password = os.environ['REDIS_PASSWORD']
-    r = redis.Redis(host='redis-19360.c240.us-east-1-3.ec2.cloud.redislabs.com', port=19360, db=0,
-                    password=redis_password, decode_responses=True)
+    r = get_data_from_redis()
     text = 'Неправильно… Попробуешь ещё раз?'
     answer = r.get(update.message.chat.id)
     if update.message.text == answer:
@@ -89,6 +99,7 @@ def main():
         states={
             QUIZ: [
                 RegexHandler('^(New question)$', handle_new_question_request),
+                RegexHandler('^(Surrender)$', handle_surrender),
                 MessageHandler(Filters.text, handle_solution_attempt)
             ],
         },
