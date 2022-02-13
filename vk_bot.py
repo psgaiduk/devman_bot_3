@@ -65,7 +65,7 @@ def try_guess(r, user, vk_api, event, keyboard):
 
 
 def work_quiz(event, vk_api, keyboard):
-    r = get_data_from_redis()
+    r = connect_redis()
     user = r.get_user(f'vk_{event.user_id}')
 
     if event.message == 'Новый вопрос':

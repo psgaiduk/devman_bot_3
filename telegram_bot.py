@@ -28,7 +28,7 @@ def connect_redis():
 
 def handle_new_question_request(bot, update):
     logger.debug('Пользователь нажал кнопку новый вопрос')
-    r = get_data_from_redis()
+    r = connect_redis()
     id_question, question = r.get_random_question()
     logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
     r.update_user(f'tg_{update.message.chat.id}', id_question)
@@ -39,7 +39,7 @@ def handle_new_question_request(bot, update):
 
 def handle_surrender(bot, update):
     logger.debug('Пользователь нажал кнопку "Сдаться"')
-    r = get_data_from_redis()
+    r = connect_redis()
     user = r.get_user(f'tg_{update.message.chat.id}')
     if user:
         question_id = user['user_last_question_id']
@@ -56,7 +56,7 @@ def handle_surrender(bot, update):
 
 def handle_solution_attempt(bot, update):
     logger.debug(f'Пользователь пишет ответ {update.message.text}')
-    r = get_data_from_redis()
+    r = connect_redis()
     text = 'Неправильно… Попробуешь ещё раз?'
     user = r.get_user(f'tg_{update.message.chat.id}')
     if user:
