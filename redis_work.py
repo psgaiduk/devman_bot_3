@@ -16,11 +16,18 @@ class RedisDB:
     def get_user(self, chat_id):
         user_data = self.r.get(f'{chat_id}')
         if user_data:
-            return json.loads(user_data)
-        return None
+            return_data = json.loads(user_data)
+            if not return_data.get('user_score_right') or not return_data.get('user_score_wrong'):
+                return {'user_last_question_id': '', 'user_score_right': 0, 'user_score_wrong': 0}
+            return return_data
+        return {'user_last_question_id': '', 'user_score_right': 0, 'user_score_wrong': 0}
 
-    def update_user(self, chat_id, question_id):
-        self.r.set(f'{chat_id}', json.dumps({'user_last_question_id': f'question_{question_id}'}))
+    def update_user(self, chat_id, question_id, count_right, count_wrong):
+        self.r.set(f'{chat_id}', json.dumps({
+            'user_last_question_id': f'question_{question_id}',
+            'user_score_right': count_right,
+            'user_score_wrong': count_wrong,
+        }))
 
     def add_question(self, question, answer):
         id_last_question = int(self.r.get('id_last_question'))

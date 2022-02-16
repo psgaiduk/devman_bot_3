@@ -29,9 +29,10 @@ def connect_redis():
 def handle_new_question_request(bot, update):
     logger.debug('Пользователь нажал кнопку новый вопрос')
     r = connect_redis()
+    user = r.get_user(f'tg_{update.message.chat.id}')
     id_question, question = r.get_random_question()
     logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
-    r.update_user(f'tg_{update.message.chat.id}', id_question)
+    r.update_user(f'tg_{update.message.chat.id}', id_question, user['user_score_right'], user['user_score_wrong'])
     logger.debug(f'Записали данные в БД')
     result = bot.send_message(chat_id=update.message.chat.id, text=question)
     logger.debug(f'Отправили сообщение в чат\n{result}')
@@ -43,6 +44,9 @@ def handle_surrender(bot, update):
     user = r.get_user(f'tg_{update.message.chat.id}')
     if user:
         question_id = user['user_last_question_id']
+        right_answers = int(user['user_score_right'])
+        wrong_answers = int(user['user_score_wrong']) + 1
+        r.update_user(f'tg_{update.message.chat.id}', question_id, right_answers, wrong_answers)
         answer = r.get_answer(question_id)
         logger.debug(f'Получили сохранённый ответ из БД для этого пользователя:\n{answer}')
         text = f'Правильный ответ:\n{answer}'
@@ -63,6 +67,9 @@ def handle_solution_attempt(bot, update):
         question_id = user['user_last_question_id']
         answer = r.get_answer(question_id)
         if update.message.text == answer:
+            right_answers = int(user['user_score_right']) + 1
+            wrong_answers = int(user['user_score_wrong'])
+            r.update_user(f'tg_{update.message.chat.id}', question_id, right_answers, wrong_answers)
             text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
             logger.debug(f'Это правильный ответ {answer}')
 

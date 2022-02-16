@@ -18,11 +18,11 @@ def connect_redis():
     return RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
 
-def send_new_question(r, vk_api, event, keyboard):
+def send_new_question(r, vk_api, event, keyboard, user):
     logger.debug(f'Пользователь нажал кнопку новый вопрос')
     id_question, question = r.get_random_question()
     logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
-    r.update_user(f'vk_{event.user_id}', id_question)
+    r.update_user(f'vk_{event.user_id}', id_question, int(user['user_score_wrong']), int(user['user_score_wrong']))
     logger.debug(f'Записали данные в БД')
     send_message(vk_api, event, keyboard, f'Вопрос:\n{question}')
 
@@ -41,27 +41,34 @@ def will_surrender(r, user, vk_api, event, keyboard):
     if user:
         question_id = user['user_last_question_id']
         logger.debug(f'Пользователь нажал кнопку "Сдаться"')
+        user['user_score_wrong'] = int(user['user_score_wrong']) + 1
+        r.update_user(
+            f'vk_{event.user_id}', question_id, int(user['user_score_right']), int(user['user_score_wrong']))
         answer = r.get_answer(question_id)
         logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
         text = f'Правильный ответ:\n{answer}'
         send_message(vk_api, event, keyboard, text)
-    send_new_question(r, vk_api, event, keyboard)
+    send_new_question(r, vk_api, event, keyboard, user)
 
 
 def try_guess(r, user, vk_api, event, keyboard):
     logger.debug(f'Пользователь пишет ответ')
     if user:
+        print(user)
         question_id = user['user_last_question_id']
         answer = r.get_answer(question_id)
         logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
         text = 'Неправильно… Попробуешь ещё раз?'
         if answer == event.message:
+            user['user_score_right'] = int(user['user_score_right']) + 1
+            r.update_user(f'vk_{event.user_id}', question_id, int(user['user_score_wrong']),
+                          int(user['user_score_wrong']))
             text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
             logger.debug(f'Это правильный ответ {event.message}')
 
         send_message(vk_api, event, keyboard, text)
     else:
-        send_new_question(r, vk_api, event, keyboard)
+        send_new_question(r, vk_api, event, keyboard, user)
 
 
 def work_quiz(event, vk_api, keyboard):
@@ -69,7 +76,7 @@ def work_quiz(event, vk_api, keyboard):
     user = r.get_user(f'vk_{event.user_id}')
 
     if event.message == 'Новый вопрос':
-        send_new_question(r, vk_api, event, keyboard)
+        send_new_question(r, vk_api, event, keyboard, user)
     elif event.message == 'Сдаться':
         will_surrender(r, user, vk_api, event, keyboard)
     else:
