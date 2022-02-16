@@ -73,11 +73,22 @@ def handle_solution_attempt(bot, update, r):
 
         result = update.message.reply_text(text)
         logger.debug(f'Отправили сообщение в чат\n{result}')
-        update.message.reply_text(text)
     else:
         logger.warning(f'Не нашли такого пользователя в БД\n{update.message.chat.id}')
         update.message.reply_text('Похоже ты ещё не начал с нами играть, вот тебе вопрос:')
         handle_new_question_request(bot, update, r)
+
+
+def handle_get_my_score(bot, update, r):
+    logger.debug(f'Пользователь просит сказать его счёт {update.message.text}')
+    user = r.get_user(f'tg_{update.message.chat.id}')
+
+    right_answers = int(user['user_score_right'])
+    wrong_answers = int(user['user_score_wrong'])
+    text = f'Вот твои результаты\nПравильных ответов: {right_answers}\nНеправильных ответов: {wrong_answers}'
+    logger.debug(f'Подготовили сообщение {text}')
+    result = update.message.reply_text(text)
+    logger.debug(f'Отправили сообщение в чат\n{result}')
 
 
 def cancel(_, update):
@@ -108,6 +119,7 @@ def main():
     new_question = partial(handle_new_question_request, r=r)
     surrender = partial(handle_surrender, r=r)
     solution_attempt = partial(handle_solution_attempt, r=r)
+    get_my_score = partial(handle_get_my_score, r=r)
 
     dp.add_handler(ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -115,6 +127,7 @@ def main():
             QUIZ: [
                 RegexHandler('^(Новый вопрос)$', new_question),
                 RegexHandler('^(Сдаться)$', surrender),
+                RegexHandler('^(Мой счёт)$', get_my_score),
                 MessageHandler(Filters.text, solution_attempt)
             ],
         },
