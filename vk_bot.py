@@ -18,11 +18,14 @@ def connect_redis():
     return RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
 
-def send_new_question(r, vk_api, event, keyboard, user):
+def send_new_question(r, vk_api, event, keyboard):
+    user = r.get_user(f'vk_{event.user_id}')
+    right_answers = int(user['user_score_right'])
+    wrong_answers = int(user['user_score_wrong'])
     logger.debug(f'Пользователь нажал кнопку новый вопрос')
     id_question, question = r.get_random_question()
     logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
-    r.update_user(f'vk_{event.user_id}', id_question, int(user['user_score_wrong']), int(user['user_score_wrong']))
+    r.update_user(f'vk_{event.user_id}', id_question, right_answers, wrong_answers)
     logger.debug(f'Записали данные в БД')
     send_message(vk_api, event, keyboard, f'Вопрос:\n{question}')
 
@@ -37,50 +40,58 @@ def send_message(vk_api, event, keyboard, text):
     logger.debug(f'Отправил сообщение в ВК {result}')
 
 
-def will_surrender(r, user, vk_api, event, keyboard):
-    if user:
-        question_id = user['user_last_question_id']
-        logger.debug(f'Пользователь нажал кнопку "Сдаться"')
-        user['user_score_wrong'] = int(user['user_score_wrong']) + 1
-        r.update_user(
-            f'vk_{event.user_id}', question_id, int(user['user_score_right']), int(user['user_score_wrong']))
-        answer = r.get_answer(question_id)
-        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
-        text = f'Правильный ответ:\n{answer}'
-        send_message(vk_api, event, keyboard, text)
-    send_new_question(r, vk_api, event, keyboard, user)
+def will_surrender(r, vk_api, event, keyboard):
+    user = r.get_user(f'vk_{event.user_id}')
+    right_answers = int(user['user_score_right'])
+    wrong_answers = int(user['user_score_wrong']) + 1
+    question_id = user['user_last_question_id']
+    logger.debug(f'Пользователь нажал кнопку "Сдаться"')
+    user['user_score_wrong'] = int(user['user_score_wrong']) + 1
+    r.update_user(f'vk_{event.user_id}', question_id, right_answers, wrong_answers)
+    answer = r.get_answer(question_id)
+    logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
+    text = f'Правильный ответ:\n{answer}'
+    send_message(vk_api, event, keyboard, text)
+    send_new_question(r, vk_api, event, keyboard)
 
 
-def try_guess(r, user, vk_api, event, keyboard):
+def try_guess(r, vk_api, event, keyboard):
+    user = r.get_user(f'vk_{event.user_id}')
     logger.debug(f'Пользователь пишет ответ')
-    if user:
-        print(user)
-        question_id = user['user_last_question_id']
-        answer = r.get_answer(question_id)
-        logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
-        text = 'Неправильно… Попробуешь ещё раз?'
-        if answer == event.message:
-            user['user_score_right'] = int(user['user_score_right']) + 1
-            r.update_user(f'vk_{event.user_id}', question_id, int(user['user_score_wrong']),
-                          int(user['user_score_wrong']))
-            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-            logger.debug(f'Это правильный ответ {event.message}')
+    question_id = user['user_last_question_id']
+    answer = r.get_answer(question_id)
+    logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
+    text = 'Неправильно… Попробуешь ещё раз?'
+    if answer == event.message:
+        right_answers = int(user['user_score_right']) + 1
+        wrong_answers = int(user['user_score_wrong'])
+        r.update_user(f'vk_{event.user_id}', question_id, right_answers, wrong_answers)
+        text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+        logger.debug(f'Это правильный ответ {event.message}')
 
-        send_message(vk_api, event, keyboard, text)
-    else:
-        send_new_question(r, vk_api, event, keyboard, user)
+    send_message(vk_api, event, keyboard, text)
+
+
+def get_my_score(r, vk_api, event, keyboard):
+    user = r.get_user(f'vk_{event.user_id}')
+    logger.debug(f'Пользователь хочет узнать свой счёт')
+    right_answers = int(user['user_score_right'])
+    wrong_answers = int(user['user_score_wrong'])
+    text = f'Вот твои результаты\nПравильных ответов: {right_answers}\nНеправильных ответов: {wrong_answers}'
+
+    send_message(vk_api, event, keyboard, text)
 
 
 def work_quiz(event, vk_api, keyboard):
     r = connect_redis()
-    user = r.get_user(f'vk_{event.user_id}')
-
     if event.message == 'Новый вопрос':
-        send_new_question(r, vk_api, event, keyboard, user)
+        send_new_question(r, vk_api, event, keyboard)
     elif event.message == 'Сдаться':
-        will_surrender(r, user, vk_api, event, keyboard)
+        will_surrender(r, vk_api, event, keyboard)
+    elif event.message == 'Мой счёт':
+        get_my_score(r, vk_api, event, keyboard)
     else:
-        try_guess(r, user, vk_api, event, keyboard)
+        try_guess(r, vk_api, event, keyboard)
 
 
 def main():
