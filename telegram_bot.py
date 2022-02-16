@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from logging import getLogger, basicConfig, INFO
 from logger_handler import BotHandler
 from redis_work import RedisDB
+from functools import partial
 
 logger = getLogger('app_logger')
 QUIZ = range(1)
@@ -26,9 +27,8 @@ def connect_redis():
     return RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
 
-def handle_new_question_request(bot, update):
+def handle_new_question_request(bot, update, r):
     logger.debug('Пользователь нажал кнопку новый вопрос')
-    r = connect_redis()
     user = r.get_user(f'tg_{update.message.chat.id}')
     id_question, question = r.get_random_question()
     logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
@@ -38,9 +38,8 @@ def handle_new_question_request(bot, update):
     logger.debug(f'Отправили сообщение в чат\n{result}')
 
 
-def handle_surrender(bot, update):
+def handle_surrender(bot, update, r):
     logger.debug('Пользователь нажал кнопку "Сдаться"')
-    r = connect_redis()
     user = r.get_user(f'tg_{update.message.chat.id}')
     if user:
         question_id = user['user_last_question_id']
@@ -52,15 +51,14 @@ def handle_surrender(bot, update):
         text = f'Правильный ответ:\n{answer}'
         result = update.message.reply_text(text)
         logger.debug(f'Отправили сообщение в чат\n{result}')
-        handle_new_question_request(bot, update)
+        handle_new_question_request(bot, update, r)
     else:
         logger.warning(f'Не нашли такого пользователя в БД\n{update.message.chat.id}')
-        handle_new_question_request(bot, update)
+        handle_new_question_request(bot, update, r)
 
 
-def handle_solution_attempt(bot, update):
+def handle_solution_attempt(bot, update, r):
     logger.debug(f'Пользователь пишет ответ {update.message.text}')
-    r = connect_redis()
     text = 'Неправильно… Попробуешь ещё раз?'
     user = r.get_user(f'tg_{update.message.chat.id}')
     if user:
@@ -79,7 +77,7 @@ def handle_solution_attempt(bot, update):
     else:
         logger.warning(f'Не нашли такого пользователя в БД\n{update.message.chat.id}')
         update.message.reply_text('Похоже ты ещё не начал с нами играть, вот тебе вопрос:')
-        handle_new_question_request(bot, update)
+        handle_new_question_request(bot, update, r)
 
 
 def cancel(_, update):
@@ -106,13 +104,18 @@ def main():
     updater = Updater(token_telegram)
     dp = updater.dispatcher
 
+    r = connect_redis()
+    new_question = partial(handle_new_question_request, r=r)
+    surrender = partial(handle_surrender, r=r)
+    solution_attempt = partial(handle_solution_attempt, r=r)
+
     dp.add_handler(ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
             QUIZ: [
-                RegexHandler('^(Новый вопрос)$', handle_new_question_request),
-                RegexHandler('^(Сдаться)$', handle_surrender),
-                MessageHandler(Filters.text, handle_solution_attempt)
+                RegexHandler('^(Новый вопрос)$', new_question),
+                RegexHandler('^(Сдаться)$', surrender),
+                MessageHandler(Filters.text, solution_attempt)
             ],
         },
         fallbacks=[CommandHandler('cancel', cancel)]
