@@ -17,7 +17,7 @@ class RedisDB:
         user_data = self.r.get(f'{chat_id}')
         if user_data:
             return_data = json.loads(user_data)
-            if not return_data.get('user_score_right') or not return_data.get('user_score_wrong'):
+            if return_data.get('user_score_right') is None or return_data.get('user_score_wrong') is None:
                 return {'user_last_question_id': '', 'user_score_right': 0, 'user_score_wrong': 0}
             return return_data
         return {'user_last_question_id': '', 'user_score_right': 0, 'user_score_wrong': 0}
