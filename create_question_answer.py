@@ -1,13 +1,22 @@
 import os
 import random
+from redis_work import RedisDB
+from dotenv import load_dotenv
 
 
-def get_random_question_and_answer():
+def add_question_and_answer_to_db(file_name):
+    dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+
+    redis_port = int(os.environ['REDIS_PORT'])
+    redis_host = os.environ['REDIS_HOST']
+    redis_password = os.environ['REDIS_PASSWORD']
+    r = RedisDB(host=redis_host, port=redis_port, password=redis_password)
+
     questions_dir = os.path.join(os.path.dirname(__file__), 'questions')
-    files = os.listdir(questions_dir)
-    random_questions_file = random.choice(files)
 
-    file_path = os.path.join(questions_dir, random_questions_file)
+    file_path = os.path.join(questions_dir, file_name)
     with open(file_path, encoding='KOI8-R') as file_with_questions:
         questions = file_with_questions.read()
 
@@ -20,4 +29,4 @@ def get_random_question_and_answer():
     question = question_and_answer[0].split(':')[1].strip()
     answer = question_and_answer[1].split('\n\n')[0].strip()
 
-    return question, answer
+    r.add_question(question, answer)

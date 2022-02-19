@@ -1,6 +1,4 @@
 import redis
-import os
-from dotenv import load_dotenv
 import json
 import random
 
@@ -11,7 +9,7 @@ class RedisDB:
         self.r = redis.Redis(host=host, port=port, db=0, password=password, decode_responses=True)
         last_question_id = self.r.get('last_question_id')
         if not last_question_id:
-            self.r.set('last_question_id', 1)
+            self.r.set('last_question_id', 0)
 
     def get_user(self, chat_id):
         user_data = self.r.get(chat_id)
@@ -30,7 +28,7 @@ class RedisDB:
         }))
 
     def add_question(self, question, answer):
-        last_question_id = int(self.r.get('last_question_id'))
+        last_question_id = int(self.r.get('last_question_id')) + 1
         question_answer = {'question': question, 'answer': answer}
         self.r.set(f'question_{last_question_id}', json.dumps(question_answer))
         self.r.set('last_question_id', last_question_id)
@@ -38,7 +36,7 @@ class RedisDB:
               f'Вопрос:\n{question}\n\n'
               f'Ответ: {answer}\n')
 
-        self.r.set('last_question_id', last_question_id + 1)
+        self.r.set('last_question_id', last_question_id)
 
     def get_question_and_answer(self, question_id):
         data = self.r.get(question_id)
@@ -57,24 +55,3 @@ class RedisDB:
 
     def get_answer(self, question_id):
         return self.get_question_and_answer(question_id)[1]
-
-
-if __name__ == '__main__':
-    dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-    if os.path.exists(dotenv_path):
-        load_dotenv(dotenv_path)
-    redis_port = int(os.environ['REDIS_PORT'])
-    redis_host = os.environ['REDIS_HOST']
-    redis_password = os.environ['REDIS_PASSWORD']
-    r = RedisDB(host=redis_host, port=redis_port, password=redis_password)
-
-    r.update_user(123, 1234)
-    user = r.get_user(123)
-    # r.add_question('С одним советским туристом в Марселе произошел такой случай. Спустившись из своего номера '
-    #                'на первый этаж, он вспомнил, что забыл закрутить кран в ванной. Когда он поднялся, вода уже '
-    #                'затопила комнату. Он вызвал горничную, та попросила его обождать внизу. В страхе он ожидал'
-    #                ' расплаты за свою оплошность. Но администрация его не ругала, а, напротив, извинилась сама'
-    #                ' перед ним. За что?',
-    #                'За то, что не объяснила ему правила пользования кранами.')
-    print(user)
-    print(r.get_random_question())
