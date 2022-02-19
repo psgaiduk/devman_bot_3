@@ -43,10 +43,7 @@ class RedisDB:
 
     def get_question_and_answer(self, question_id):
         data = self.r.get(question_id)
-        if data:
-            question_answer = json.loads(data)
-        else:
-            return 'База данных пуста', 'Нужно добавить вопросов'
+        question_answer = json.loads(data)
         question = question_answer.get('question')
         answer = question_answer.get('answer')
         return question, answer
