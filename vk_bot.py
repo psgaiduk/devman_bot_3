@@ -55,7 +55,7 @@ def surrender(r, vk_api, event, keyboard):
     send_new_question(r, vk_api, event, keyboard)
 
 
-def try_guess(r, vk_api, event, keyboard):
+def check_answer(r, vk_api, event, keyboard):
     user = r.get_user(f'vk_{event.user_id}')
     logger.debug(f'Пользователь пишет ответ')
     question_id = user['user_last_question_id']
@@ -115,11 +115,11 @@ def main():
                 if event.message == 'Новый вопрос':
                     send_new_question(r, vk_api, event, keyboard)
                 elif event.message == 'Сдаться':
-                    will_surrender(r, vk_api, event, keyboard)
+                    surrender(r, vk_api, event, keyboard)
                 elif event.message == 'Мой счёт':
                     get_my_score(r, vk_api, event, keyboard)
                 else:
-                    try_guess(r, vk_api, event, keyboard)
+                    check_answer(r, vk_api, event, keyboard)
         except exceptions.Captcha as e:
             time.sleep(1)
             logger.exception(e, exc_info=True)
