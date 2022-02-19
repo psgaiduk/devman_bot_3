@@ -11,13 +11,6 @@ from redis_work import RedisDB
 logger = getLogger('app_logger')
 
 
-def connect_redis():
-    redis_port = int(os.environ['REDIS_PORT'])
-    redis_host = os.environ['REDIS_HOST']
-    redis_password = os.environ['REDIS_PASSWORD']
-    return RedisDB(host=redis_host, port=redis_port, password=redis_password)
-
-
 def send_new_question(r, vk_api, event, keyboard):
     user = r.get_user(f'vk_{event.user_id}')
     right_answers = int(user['user_score_right'])
@@ -90,6 +83,10 @@ def main():
     token_vk = os.environ['VK_TOKEN']
     logger_token = os.environ['TOKEN_TELEGRAM_LOGGER']
     logger_chat_id = os.environ['CHAT_ID']
+    redis_port = int(os.environ['REDIS_PORT'])
+    redis_host = os.environ['REDIS_HOST']
+    redis_password = os.environ['REDIS_PASSWORD']
+    r = RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
     basicConfig(level=INFO, format='{asctime} - {levelname} - {name} - {message}', style='{')
     logger.addHandler(BotHandler(logger_token, logger_chat_id))
@@ -111,7 +108,6 @@ def main():
     for event in long_poll.listen():
         try:
             if event.type == longpoll.VkEventType.MESSAGE_NEW and event.to_me:
-                r = connect_redis()
                 if event.message == 'Новый вопрос':
                     send_new_question(r, vk_api, event, keyboard)
                 elif event.message == 'Сдаться':

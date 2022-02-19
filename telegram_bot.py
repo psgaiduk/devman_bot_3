@@ -20,13 +20,6 @@ def start(bot, update):
     return QUIZ
 
 
-def connect_redis():
-    redis_port = int(os.environ['REDIS_PORT'])
-    redis_host = os.environ['REDIS_HOST']
-    redis_password = os.environ['REDIS_PASSWORD']
-    return RedisDB(host=redis_host, port=redis_port, password=redis_password)
-
-
 def handle_new_question_request(bot, update, r):
     logger.debug('Пользователь нажал кнопку новый вопрос')
     user = r.get_user(f'tg_{update.message.chat.id}')
@@ -106,6 +99,10 @@ def main():
     token_telegram = os.environ['TELEGRAM_TOKEN']
     logger_token = os.environ['TOKEN_TELEGRAM_LOGGER']
     logger_chat_id = os.environ['CHAT_ID']
+    redis_port = int(os.environ['REDIS_PORT'])
+    redis_host = os.environ['REDIS_HOST']
+    redis_password = os.environ['REDIS_PASSWORD']
+    r = RedisDB(host=redis_host, port=redis_port, password=redis_password)
 
     basicConfig(level=INFO, format='{asctime} - {levelname} - {name} - {message}', style='{')
     logger.addHandler(BotHandler(logger_token, logger_chat_id))
@@ -115,7 +112,6 @@ def main():
     updater = Updater(token_telegram)
     dp = updater.dispatcher
 
-    r = connect_redis()
     new_question = partial(handle_new_question_request, r=r)
     surrender = partial(handle_surrender, r=r)
     solution_attempt = partial(handle_solution_attempt, r=r)
