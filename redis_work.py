@@ -53,7 +53,7 @@ class RedisDB:
 
     def get_random_question(self):
         last_question_id = int(self.r.get('last_question_id'))
-        question_id = random.randint(1, last_question_id)
+        question_id = random.randint(1, last_question_id + 1)
         return question_id, self.get_question_and_answer(f'question_{question_id}')[0]
 
     def get_answer(self, question_id):
