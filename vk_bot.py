@@ -41,7 +41,7 @@ def surrender(r, vk_api, event, keyboard):
     logger.debug(f'Пользователь нажал кнопку "Сдаться"')
     user['user_score_wrong'] = int(user['user_score_wrong']) + 1
     r.update_user(f'vk_{event.user_id}', question_id, right_answers, wrong_answers)
-    answer = r.get_answer(question_id)
+    _, answer = r.get_question_and_answer(question_id)
     logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
     text = f'Правильный ответ:\n{answer}'
     send_message(vk_api, event, keyboard, text)
@@ -52,7 +52,7 @@ def check_answer(r, vk_api, event, keyboard):
     user = r.get_user(f'vk_{event.user_id}')
     logger.debug(f'Пользователь пишет ответ')
     question_id = user['user_last_question_id']
-    answer = r.get_answer(question_id)
+    _, answer = r.get_question_and_answer(question_id)
     logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
     text = 'Неправильно… Попробуешь ещё раз?'
     if answer == event.message:

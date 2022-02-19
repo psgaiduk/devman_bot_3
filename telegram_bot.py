@@ -39,7 +39,7 @@ def handle_surrender(bot, update, r):
         right_answers = int(user['user_score_right'])
         wrong_answers = int(user['user_score_wrong']) + 1
         r.update_user(f'tg_{update.message.chat.id}', question_id, right_answers, wrong_answers)
-        answer = r.get_answer(question_id)
+        _, answer = r.get_question_and_answer(question_id)
         logger.debug(f'Получили сохранённый ответ из БД для этого пользователя:\n{answer}')
         text = f'Правильный ответ:\n{answer}'
         result = update.message.reply_text(text)
@@ -56,7 +56,7 @@ def handle_solution_attempt(bot, update, r):
     user = r.get_user(f'tg_{update.message.chat.id}')
     if user:
         question_id = user['user_last_question_id']
-        answer = r.get_answer(question_id)
+        _, answer = r.get_question_and_answer(question_id)
         if update.message.text == answer:
             right_answers = int(user['user_score_right']) + 1
             wrong_answers = int(user['user_score_wrong'])
