@@ -39,7 +39,6 @@ def surrender(r, vk_api, event, keyboard):
     wrong_answers = int(user['user_score_wrong']) + 1
     question_id = user['user_last_question_id']
     logger.debug(f'Пользователь нажал кнопку "Сдаться"')
-    user['user_score_wrong'] = int(user['user_score_wrong']) + 1
     r.update_user(f'vk_{event.user_id}', question_id, right_answers, wrong_answers)
     _, answer = r.get_question_and_answer(question_id)
     logger.debug(f'Получили ответ для этого пользователя из БД {answer}')
