@@ -126,10 +126,10 @@ def main():
                 work_quiz(event, vk_api, keyboard)
         except exceptions.Captcha as e:
             time.sleep(1)
-            logger.error(e, exc_info=True)
+            logger.exception(e, exc_info=True)
         except Exception as e:
             time.sleep(1)
-            logger.error(e, exc_info=True)
+            logger.exception(e, exc_info=True)
 
 
 if __name__ == "__main__":
