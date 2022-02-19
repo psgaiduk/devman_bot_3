@@ -9,7 +9,7 @@ class RedisDB:
 
     def __init__(self, host, port, password):
         self.r = redis.Redis(host=host, port=port, db=0, password=password, decode_responses=True)
-        last_question_id = int(self.r.get('last_question_id'))
+        last_question_id = self.r.get('last_question_id')
         if not last_question_id:
             self.r.set('last_question_id', 1)
 
