@@ -82,18 +82,6 @@ def get_my_score(r, vk_api, event, keyboard):
     send_message(vk_api, event, keyboard, text)
 
 
-def work_quiz(event, vk_api, keyboard):
-    r = connect_redis()
-    if event.message == 'Новый вопрос':
-        send_new_question(r, vk_api, event, keyboard)
-    elif event.message == 'Сдаться':
-        will_surrender(r, vk_api, event, keyboard)
-    elif event.message == 'Мой счёт':
-        get_my_score(r, vk_api, event, keyboard)
-    else:
-        try_guess(r, vk_api, event, keyboard)
-
-
 def main():
     dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
     if os.path.exists(dotenv_path):
@@ -123,7 +111,15 @@ def main():
     for event in long_poll.listen():
         try:
             if event.type == longpoll.VkEventType.MESSAGE_NEW and event.to_me:
-                work_quiz(event, vk_api, keyboard)
+                r = connect_redis()
+                if event.message == 'Новый вопрос':
+                    send_new_question(r, vk_api, event, keyboard)
+                elif event.message == 'Сдаться':
+                    will_surrender(r, vk_api, event, keyboard)
+                elif event.message == 'Мой счёт':
+                    get_my_score(r, vk_api, event, keyboard)
+                else:
+                    try_guess(r, vk_api, event, keyboard)
         except exceptions.Captcha as e:
             time.sleep(1)
             logger.exception(e, exc_info=True)
