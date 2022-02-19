@@ -35,11 +35,6 @@ class RedisDB:
         question_answer = {'question': question, 'answer': answer}
         self.r.set(f'question_{last_question_id}', json.dumps(question_answer))
         self.r.set('last_question_id', last_question_id)
-        print(f'Вопрос №{last_question_id} добавлен в базу данных:\n'
-              f'Вопрос:\n{question}\n\n'
-              f'Ответ: {answer}\n')
-
-        self.r.set('last_question_id', last_question_id)
 
     def get_question_and_answer(self, question_id):
         data = self.r.get(question_id)
