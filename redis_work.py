@@ -10,6 +10,7 @@ class RedisDB:
         last_question_id = self.r.get('last_question_id')
         if not last_question_id:
             self.r.set('last_question_id', 0)
+            self.add_question('Как у тебя дела?\nОтвет: Всё хорошо', 'Всё хорошо')
 
     def get_user(self, chat_id):
         user_data = self.r.get(chat_id)
