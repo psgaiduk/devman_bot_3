@@ -9,9 +9,9 @@ class RedisDB:
 
     def __init__(self, host, port, password):
         self.r = redis.Redis(host=host, port=port, db=0, password=password, decode_responses=True)
-        id_last_question = int(self.r.get('id_last_question'))
-        if not id_last_question:
-            self.r.set('id_last_question', 1)
+        last_question_id = int(self.r.get('last_question_id'))
+        if not last_question_id:
+            self.r.set('last_question_id', 1)
 
     def get_user(self, chat_id):
         user_data = self.r.get(f'{chat_id}')
@@ -30,18 +30,18 @@ class RedisDB:
         }))
 
     def add_question(self, question, answer):
-        id_last_question = int(self.r.get('id_last_question'))
+        last_question_id = int(self.r.get('last_question_id'))
         question_answer = {'question': question, 'answer': answer}
-        self.r.set(f'question_{id_last_question}', json.dumps(question_answer))
-        self.r.set('id_last_question', id_last_question)
-        print(f'Вопрос №{id_last_question} добавлен в базу данных:\n'
+        self.r.set(f'question_{last_question_id}', json.dumps(question_answer))
+        self.r.set('last_question_id', last_question_id)
+        print(f'Вопрос №{last_question_id} добавлен в базу данных:\n'
               f'Вопрос:\n{question}\n\n'
               f'Ответ: {answer}\n')
 
-        self.r.set('id_last_question', id_last_question + 1)
+        self.r.set('last_question_id', last_question_id + 1)
 
-    def get_question_and_answer(self, id_question):
-        data = self.r.get(id_question)
+    def get_question_and_answer(self, question_id):
+        data = self.r.get(question_id)
         if data:
             question_answer = json.loads(data)
         else:
@@ -51,12 +51,12 @@ class RedisDB:
         return question, answer
 
     def get_random_question(self):
-        id_last_question = int(self.r.get('id_last_question'))
-        id_question = random.randint(1, id_last_question)
-        return id_question, self.get_question_and_answer(f'question_{id_question}')[0]
+        last_question_id = int(self.r.get('last_question_id'))
+        question_id = random.randint(1, last_question_id)
+        return question_id, self.get_question_and_answer(f'question_{question_id}')[0]
 
-    def get_answer(self, id_question):
-        return self.get_question_and_answer(id_question)[1]
+    def get_answer(self, question_id):
+        return self.get_question_and_answer(question_id)[1]
 
 
 if __name__ == '__main__':

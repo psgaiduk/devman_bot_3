@@ -16,9 +16,9 @@ def send_new_question(r, vk_api, event, keyboard):
     right_answers = int(user['user_score_right'])
     wrong_answers = int(user['user_score_wrong'])
     logger.debug(f'Пользователь нажал кнопку новый вопрос')
-    id_question, question = r.get_random_question()
-    logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
-    r.update_user(f'vk_{event.user_id}', id_question, right_answers, wrong_answers)
+    question_id, question = r.get_random_question()
+    logger.debug(f'Получили вопрос и ответ\n{question_id}\n{question}')
+    r.update_user(f'vk_{event.user_id}', question_id, right_answers, wrong_answers)
     logger.debug(f'Записали данные в БД')
     send_message(vk_api, event, keyboard, f'Вопрос:\n{question}')
 

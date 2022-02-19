@@ -23,9 +23,9 @@ def start(bot, update):
 def handle_new_question_request(bot, update, r):
     logger.debug('Пользователь нажал кнопку новый вопрос')
     user = r.get_user(f'tg_{update.message.chat.id}')
-    id_question, question = r.get_random_question()
-    logger.debug(f'Получили вопрос и ответ\n{id_question}\n{question}')
-    r.update_user(f'tg_{update.message.chat.id}', id_question, user['user_score_right'], user['user_score_wrong'])
+    question_id, question = r.get_random_question()
+    logger.debug(f'Получили вопрос и ответ\n{question_id}\n{question}')
+    r.update_user(f'tg_{update.message.chat.id}', question_id, user['user_score_right'], user['user_score_wrong'])
     logger.debug(f'Записали данные в БД')
     result = bot.send_message(chat_id=update.message.chat.id, text=question)
     logger.debug(f'Отправили сообщение в чат\n{result}')
