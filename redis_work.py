@@ -14,10 +14,10 @@ class RedisDB:
     def get_user(self, chat_id):
         user_data = self.r.get(chat_id)
         if user_data:
-            return_data = json.loads(user_data)
-            if return_data.get('user_score_right') is None or return_data.get('user_score_wrong') is None:
+            json_user_data = json.loads(user_data)
+            if json_user_data.get('user_score_right') is None or json_user_data.get('user_score_wrong') is None:
                 return {'user_last_question_id': 'question_1', 'user_score_right': 0, 'user_score_wrong': 0}
-            return return_data
+            return json_user_data
         return {'user_last_question_id': 'question_1', 'user_score_right': 0, 'user_score_wrong': 0}
 
     def update_user(self, chat_id, question_id, count_right, count_wrong):
