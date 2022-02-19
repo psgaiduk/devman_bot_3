@@ -40,7 +40,7 @@ def send_message(vk_api, event, keyboard, text):
     logger.debug(f'Отправил сообщение в ВК {result}')
 
 
-def will_surrender(r, vk_api, event, keyboard):
+def surrender(r, vk_api, event, keyboard):
     user = r.get_user(f'vk_{event.user_id}')
     right_answers = int(user['user_score_right'])
     wrong_answers = int(user['user_score_wrong']) + 1
