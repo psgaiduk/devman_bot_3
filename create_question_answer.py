@@ -30,3 +30,7 @@ def add_question_and_answer_to_db(file_name):
     answer = question_and_answer[1].split('\n\n')[0].strip()
 
     r.add_question(question, answer)
+
+
+if __name__ == '__main__':
+    add_question_and_answer_to_db(file_name=input('input file name (.txt)'))

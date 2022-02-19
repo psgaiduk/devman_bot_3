@@ -36,6 +36,10 @@ Create project in [Redis](https://redis.com/)
 
 ## Start Bot
 
+First time you need to add questions and answers in DB
+for add questions and answers use ```python create_question_answer```
+after input your file name with answer and question
+
 if you want to run quiz in telegram ```python telegram_bot.py```
 if you want to run quiz in vk bot ```python vk_bot.py```
 
