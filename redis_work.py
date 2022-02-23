@@ -9,9 +9,7 @@ class RedisDB:
         self.r = redis.Redis(host=host, port=port, db=0, password=password, decode_responses=True)
         last_question_id = len(self.r.keys(pattern='question_*'))
         if not last_question_id:
-            self.add_question('Как у тебя дела?\n'
-                              'Сообщите администратору, что база вопросов пуста'
-                              '\nОтвет: Всё хорошо', 'Всё хорошо')
+            raise Exception('База с вопросами пуста')
 
     def get_user(self, chat_id):
         user_data = self.r.get(chat_id)
