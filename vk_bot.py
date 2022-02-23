@@ -115,12 +115,9 @@ def main():
                     get_my_score(r, vk_api, event, keyboard)
                 else:
                     check_answer(r, vk_api, event, keyboard)
-        except exceptions.Captcha as e:
-            time.sleep(1)
-            logger.exception(e, exc_info=True)
         except Exception as e:
             time.sleep(1)
-            logger.exception(e, exc_info=True)
+            logger.exception(e)
 
 
 if __name__ == "__main__":
