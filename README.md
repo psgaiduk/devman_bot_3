@@ -3,10 +3,12 @@
 This is quiz for telegram and vk.
 
 Example work telegram:
+
 ![](gif_work/examination_tg.gif)
 
 
 Example work VK:
+
 ![](gif_work/examination_vk.gif)
 ## Project setup
 
@@ -36,11 +38,13 @@ Create project in [Redis](https://redis.com/)
 
 ## Start Bot
 
-First time you need to add questions and answers in DB
-for add questions and answers use ```python create_question_answer```
-after input your file name with answer and question
+First time you need to add questions in folder questions. Question File Structure
+you can see in the next section
+
+If you want to update db with questions ```python create_question_answer```
 
 if you want to run quiz in telegram ```python telegram_bot.py```
+
 if you want to run quiz in vk bot ```python vk_bot.py```
 
 ## Question for quiz
