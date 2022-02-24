@@ -103,6 +103,7 @@ def main():
     redis_host = os.environ['REDIS_HOST']
     redis_password = os.environ['REDIS_PASSWORD']
     r = RedisDB(host=redis_host, port=redis_port, password=redis_password)
+    r.check_db()
 
     basicConfig(level=INFO, format='{asctime} - {levelname} - {name} - {message}', style='{')
     logger.addHandler(BotHandler(logger_token, logger_chat_id))

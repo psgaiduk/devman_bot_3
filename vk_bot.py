@@ -90,6 +90,8 @@ def main():
     basicConfig(level=INFO, format='{asctime} - {levelname} - {name} - {message}', style='{')
     logger.addHandler(BotHandler(logger_token, logger_chat_id))
 
+    r.check_db()
+
     logger.info('Начало работы ВК бота Викторина')
 
     vk_session = VkApi(token=token_vk)

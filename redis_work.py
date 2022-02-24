@@ -7,6 +7,8 @@ class RedisDB:
 
     def __init__(self, host, port, password):
         self.r = redis.Redis(host=host, port=port, db=0, password=password, decode_responses=True)
+
+    def check_db(self):
         last_question_id = len(self.r.keys(pattern='question_*'))
         if not last_question_id:
             raise Exception('База с вопросами пуста')
